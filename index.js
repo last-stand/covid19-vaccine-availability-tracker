@@ -1,12 +1,8 @@
 const fetch = require("node-fetch");
 const { exec } = require("child_process");
 const fs = require('fs');
+const filters = require('./filter');
 let attempt = 0;
-
-//  fee_type: Paid/Free
-//  min_age_limit: 18/45
-//  vaccine: COVAXIN/COVISHIELD
-const filters = { fee_type: "Free", min_age_limit: 45};
 
 function getAvailableVaccineData(data) {
     const centers = data.centers || [];
@@ -87,9 +83,17 @@ async function say(text) {
     });
 }
 
+function getUrl() {
+    const today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+    const date = filters.date ? filters.date : today;
+    if(filters.pin) {
+        return `https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByPin?pincode=${filters.pin}&date=${date}`;
+    }
+    return `https://cdn-api.co-vin.in/api/v2/appointment/sessions/calendarByDistrict?district_id=294&date=${date}`;
+}
+
 async function subscribe() {
-    let today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
-    let response = await fetch(`https://cdn-api.co-vin.in/api/v2/appointment/sessions/calendarByDistrict?district_id=294&date=${today}`, {
+    let response = await fetch(getUrl(), {
         method: 'GET',
         headers: {
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36'
@@ -103,7 +107,7 @@ async function subscribe() {
         if(availableCenters.length > 0) {
             await playAlertSound();
             await new Promise(resolve => setTimeout(resolve, 4000));
-            console.log(JSON.stringify(availableCenters, null, 2));
+            console.log(JSON.stringify(availableCenters, null, 4));
         } else {
             console.log('Attempt: ', ++attempt);
             console.log('No available centers');
@@ -112,8 +116,9 @@ async function subscribe() {
         await new Promise(resolve => setTimeout(resolve, 4000));
         await subscribe();
     } else {
-        console.log("STATUS: " + response.statusText);
-        console.log("ERROR: " + response);
+        console.error(`STATUS: ${response.statusText}, CODE: ${response.status}`);
+        console.error(`URL: ${response.url}`)
+        console.error("ERROR: " + response.json());
         say(`Server error, ${response.statusText}`);
         // Status is not 200 OK,
         // reconnect after 5 seconds
