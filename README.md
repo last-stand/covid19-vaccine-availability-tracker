@@ -6,12 +6,16 @@ This app is based on Co-WIN data. It is completely console based app which track
 
 * Run `npm install` to install node dependencies
 * Run `npm start` to run the app.
-* You also need __ffplay__ sound library to get sound notifications. For instructions refer the below link
-    * https://command-not-found.com/ffplay
+* You also need __SoX__ to play notification sound. First install it using this command on terminal,
+
+     ```sh
+     $ sudo apt-get install sox
+     ```
+    For documentation refer this link http://sox.sourceforge.net/sox.html
 
 ## Input Filters
 
-Provide input like PIN code of your area, date, vaccine type, fee type and min age limit in `filter.js` file.
+__Before running the app__, provide input like PIN code, date, vaccine type, fee type and minimum age limit in `filter.js` file.
 
 
 

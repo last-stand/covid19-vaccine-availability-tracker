@@ -57,7 +57,7 @@ function removeUnwantedSessions(centers) {
 }
 
 async function playAlertSound() {
-    exec(`ffplay -loop 2 -autoexit ${__dirname}/assets/sound/alert.mp3`, (error, stdout, stderr) => {
+    exec(`play ${__dirname}/assets/sound/alert.mp3 repeat 1`, (error, stdout, stderr) => {
         if (error) {
             console.log(`error: ${error.message}`);
             return;
