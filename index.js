@@ -1,5 +1,6 @@
 const fetch = require("node-fetch");
 const { exec } = require("child_process");
+var prettyjson = require('prettyjson');
 const fs = require('fs');
 const filters = require('./filter');
 let attempt = 0;
@@ -69,20 +70,6 @@ async function playAlertSound() {
     });
 }
 
-async function say(text) {
-    exec(`spd-say "${text}" -i 100 -t male3 -r -20 -w`, (error, stdout, stderr) => {
-        if (error) {
-            console.log(`error: ${error.message}`);
-            return;
-        }
-        if (stderr) {
-            console.log(`stderr: ${stderr}`);
-            return;
-        }
-        console.log(`stdout: ${stdout}`);
-    });
-}
-
 function getUrl() {
     const today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
     const date = filters.date ? filters.date : today;
@@ -107,9 +94,15 @@ async function subscribe() {
                 const data = await response.json();
                 const availableCenters = getAvailableVaccineData(data);
                 if(availableCenters.length > 0) {
+                    const prettyOptions =  {
+                        keysColor: 'green',
+                        dashColor: 'magenta',
+                        numberColor: 'cyan',
+                        stringColor: 'yellow'
+                    }
+                    console.log(prettyjson.render(availableCenters, prettyOptions));
                     await playAlertSound();
                     await new Promise(resolve => setTimeout(resolve, 4000));
-                    console.log(JSON.stringify(availableCenters, null, 4));
                 } else {
                     console.log('Attempt: ', ++attempt);
                     console.log(`No available centers at ${new Date().toLocaleTimeString()}`);
@@ -118,7 +111,6 @@ async function subscribe() {
                 console.error(`STATUS: ${response.statusText}, CODE: ${response.status}`);
                 console.error(`URL: ${response.url}`)
                 console.error("ERROR: " + response.json());
-                say(`Server error, ${response.statusText}`);
             }
         } catch(err) {
             console.error(err);
