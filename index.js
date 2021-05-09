@@ -93,37 +93,38 @@ function getUrl() {
 }
 
 async function subscribe() {
-    let response = await fetch(getUrl(), {
-        method: 'GET',
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36'
-        }
-    });
+    while(true) {
+        try {
+            let response = await fetch(getUrl(), {
+                method: 'GET',
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36'
+                }
+            });
 
-    if (response.status == 200) {
-        // Get and show the message
-        const data = await response.json();
-        const availableCenters = getAvailableVaccineData(data);
-        if(availableCenters.length > 0) {
-            await playAlertSound();
-            await new Promise(resolve => setTimeout(resolve, 4000));
-            console.log(JSON.stringify(availableCenters, null, 4));
-        } else {
-            console.log('Attempt: ', ++attempt);
-            console.log('No available centers');
+            if (response.status == 200) {
+                // Get and show the message
+                const data = await response.json();
+                const availableCenters = getAvailableVaccineData(data);
+                if(availableCenters.length > 0) {
+                    await playAlertSound();
+                    await new Promise(resolve => setTimeout(resolve, 4000));
+                    console.log(JSON.stringify(availableCenters, null, 4));
+                } else {
+                    console.log('Attempt: ', ++attempt);
+                    console.log(`No available centers at ${new Date().toLocaleTimeString()}`);
+                }
+            } else {
+                console.error(`STATUS: ${response.statusText}, CODE: ${response.status}`);
+                console.error(`URL: ${response.url}`)
+                console.error("ERROR: " + response.json());
+                say(`Server error, ${response.statusText}`);
+            }
+        } catch(err) {
+            console.error(err);
         }
-        // Call subscribe() again to get the next message after 4 seconds
+        // reconnect after 4 seconds
         await new Promise(resolve => setTimeout(resolve, 4000));
-        await subscribe();
-    } else {
-        console.error(`STATUS: ${response.statusText}, CODE: ${response.status}`);
-        console.error(`URL: ${response.url}`)
-        console.error("ERROR: " + response.json());
-        say(`Server error, ${response.statusText}`);
-        // Status is not 200 OK,
-        // reconnect after 5 seconds
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        await subscribe();
     }
 }
 
