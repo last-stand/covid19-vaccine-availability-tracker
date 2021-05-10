@@ -34,6 +34,7 @@ function filterByAvailableCapacityAndAgeLimit(centers) {
                 return session.available_capacity > 0;
             });
         }
+        return false;
     });
 }
 
@@ -44,6 +45,7 @@ function filterByVaccineType(centers) {
                 return session.vaccine === filters.vaccine;
             });
         }
+        return false;
     });
 }
 
@@ -84,6 +86,7 @@ function getUrl() {
 async function subscribe() {
     while(true) {
         try {
+            console.log('Attempt: ', ++attempt);
             let response = await fetch(getUrl(), {
                 method: 'GET',
                 headers: {
@@ -103,16 +106,16 @@ async function subscribe() {
                         stringColor: 'yellow'
                     }
                     console.log(prettyjson.render(availableCenters, prettyOptions));
+                    console.log('\x1b[34m', '_____________________________________________________________________________');
                     await playAlertSound();
                     await new Promise(resolve => setTimeout(resolve, 4000));
                 } else {
-                    console.log('Attempt: ', ++attempt);
                     console.log(`No available centers at ${new Date().toLocaleTimeString()}`);
                 }
             } else {
                 console.error(`STATUS: ${response.statusText}, CODE: ${response.status}`);
                 console.error(`URL: ${response.url}`)
-                console.error("ERROR: " + response.json());
+                //console.error("ERROR: " + response.json());
             }
         } catch(err) {
             console.error(err);
