@@ -1,6 +1,6 @@
 # Covid-19 Vaccine Availability Tracker
 
-This app is based on Co-WIN data. It is completely console based app which tracks vaccine availability and notifies using sound and prints data on console as soon as gets available session. By default this app tracks vaccine availability for BBMP (Bengaluru) for current date.
+This app is based on Co-WIN data. It is completely console based app which tracks vaccine availability and notifies using sound and prints data on console as soon as gets available session. There are filters to get relevant data. By default this app tracks vaccine availability for BBMP (Bengaluru) for current date.
 
 ## Setup and Run
 
@@ -15,7 +15,7 @@ This app is based on Co-WIN data. It is completely console based app which track
 
 ## Input Filters
 
-__Before running the app__, provide input like PIN code, date, vaccine type, fee type and minimum age limit in `filter.js` file.
+__Before running the app__, providing PIN code filter is necessary to get relevant data otherwise you will get default data which is for Bengaluru. All other filters are optional. You can provide inputs like PIN code, date, vaccine type, fee type and minimum age limit in `filter.js` file. 
 
 
 
