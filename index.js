@@ -14,37 +14,39 @@ function getAvailableVaccineData(data) {
         });
     }
 
-    let availableCenters = centersBasedOnFeeType.filter(center => {
-        if(center.sessions && center.sessions.length > 0) {
-            return center.sessions.some(session => {
-                return session.available_capacity > 0;
-            })
-        }
-    });
-
-    if (filters.min_age_limit) {
-        availableCenters = availableCenters.filter(center => {
-            if(center.sessions && center.sessions.length > 0) {
-                return center.sessions.some(session => {
-                    return session.min_age_limit === filters.min_age_limit;
-                })
-            }
-        });
-    }
+    let availableCenters = filterByAvailableCapacityAndAgeLimit(centersBasedOnFeeType);
 
     if(filters.vaccine) {
-        availableCenters = availableCenters.filter(center => {
-            if(center.sessions && center.sessions.length > 0) {
-                return center.sessions.some(session => {
-                        return session.vaccine === filters.vaccine;
-                })
-            }
-        });
+        availableCenters = filterByVaccineType(availableCenters);
     }
 
     const centersWithFilteredSessions = removeUnwantedSessions(availableCenters);
     return centersWithFilteredSessions;
 }
+
+function filterByAvailableCapacityAndAgeLimit(centers) {
+    return centers.filter(center => {
+        if (center.sessions && center.sessions.length > 0) {
+            return center.sessions.some(session => {
+                if (filters.min_age_limit) {
+                    return session.min_age_limit === filters.min_age_limit && session.available_capacity > 0;
+                }
+                return session.available_capacity > 0;
+            });
+        }
+    });
+}
+
+function filterByVaccineType(centers) {
+    return centers.filter(center => {
+        if (center.sessions && center.sessions.length > 0) {
+            return center.sessions.some(session => {
+                return session.vaccine === filters.vaccine;
+            });
+        }
+    });
+}
+
 
 function removeUnwantedSessions(centers) {
     return centers.map(center => {
@@ -63,7 +65,7 @@ async function playAlertSound() {
             return;
         }
         if (stderr) {
-            console.log(`stderr: ${stderr}`);
+            // console.log(`stderr: ${stderr}`);
             return;
         }
         console.log(`stdout: ${stdout}`);
@@ -74,7 +76,7 @@ function getUrl() {
     const today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
     const date = filters.date ? filters.date : today;
     if(filters.pin) {
-        return `https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByPin?pincode=${filters.pin}&date=${date}`;
+        return `https://cdn-api.co-vin.in/api/v2/appointment/sessions/calendarByPin?pincode=${filters.pin}&date=${date}`;
     }
     return `https://cdn-api.co-vin.in/api/v2/appointment/sessions/calendarByDistrict?district_id=294&date=${date}`;
 }
