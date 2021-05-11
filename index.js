@@ -3,6 +3,7 @@ const { exec } = require("child_process");
 var prettyjson = require('prettyjson');
 const fs = require('fs');
 const filters = require('./filter');
+const { pin } = require("./filter");
 let attempt = 0;
 
 function getAvailableVaccineData(data) {
@@ -74,48 +75,78 @@ async function playAlertSound() {
     });
 }
 
-function getUrl() {
+function getUrls() {
     const today = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
     const date = filters.date ? filters.date : today;
-    if(filters.pin) {
-        return `https://cdn-api.co-vin.in/api/v2/appointment/sessions/calendarByPin?pincode=${filters.pin}&date=${date}`;
+    if(filters.pin && filters.pin.length) {
+        return filters.pin.map((code) => { 
+            return `https://cdn-api.co-vin.in/api/v2/appointment/sessions/calendarByPin?pincode=${code}&date=${date}`;
+        });
     }
-    return `https://cdn-api.co-vin.in/api/v2/appointment/sessions/calendarByDistrict?district_id=294&date=${date}`;
+    if(filters.district_id && filters.district_id.length) {
+        return filters.district_id.map((id) => { 
+            return `https://cdn-api.co-vin.in/api/v2/appointment/sessions/calendarByDistrict?district_id=${id}&date=${date}`;
+        });
+    }
+}
+
+async function getAllData(urls) {
+    try {
+        let options = {
+            method: 'GET',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36'
+            }
+        }
+        const responses = await Promise.all(
+            urls.map(
+                url =>
+                    fetch(url, options).then(
+                        (response) => {
+                            if (response.status == 200) {
+                                return response.json();
+                            } else {
+                                console.error(`\nSTATUS: ${response.statusText}, CODE: ${response.status}`);
+                                console.error(`URL: ${response.url}`)
+                                //console.error("ERROR: " + response.json());
+                                return false;
+                            }
+                        }
+                    )
+            )
+        );
+
+        return responses;
+
+    } catch (error) {
+        console.log('ERROR: ', error)
+    }
 }
 
 async function subscribe() {
     while(true) {
         try {
-            console.log('Attempt: ', ++attempt);
-            let response = await fetch(getUrl(), {
-                method: 'GET',
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36'
-                }
-            });
+            const urls = getUrls() || [];
+            if(urls.length === 0) {
+                console.error('\x1b[41m', 'ERROR: Please provide either PIN code or District id in "filters.js" file to search','\x1b[0m');
+                break;
+            }
+            console.log('\x1b[33m', `\n🤞 Attempt: ${++attempt}`, '\x1b[0m');
+            let responses = await getAllData(urls);
 
-            if (response.status == 200) {
-                // Get and show the message
-                const data = await response.json();
+            const finalAvailableCenters = responses.filter(Boolean).map((data) => {
                 const availableCenters = getAvailableVaccineData(data);
                 if(availableCenters.length > 0) {
-                    const prettyOptions =  {
-                        keysColor: 'green',
-                        dashColor: 'magenta',
-                        numberColor: 'cyan',
-                        stringColor: 'yellow'
-                    }
-                    console.log(prettyjson.render(availableCenters, prettyOptions));
-                    console.log('\x1b[34m', '_____________________________________________________________________________');
-                    await playAlertSound();
-                    await new Promise(resolve => setTimeout(resolve, 4000));
-                } else {
-                    console.log(`No available centers at ${new Date().toLocaleTimeString()}`);
+                    return availableCenters;
                 }
+            }).filter(Boolean);
+
+            if(finalAvailableCenters.length > 0) {
+                await prettyPrint(finalAvailableCenters);
+                await playAlertSound();
+                await new Promise(resolve => setTimeout(resolve, 4000));
             } else {
-                console.error(`STATUS: ${response.statusText}, CODE: ${response.status}`);
-                console.error(`URL: ${response.url}`)
-                //console.error("ERROR: " + response.json());
+                console.log(`\n😷 No available centers at ${new Date().toLocaleTimeString()}`);
             }
         } catch(err) {
             console.error(err);
@@ -123,6 +154,19 @@ async function subscribe() {
         // reconnect after 4 seconds
         await new Promise(resolve => setTimeout(resolve, 4000));
     }
+}
+
+async function prettyPrint(availableCenters) {
+    const prettyOptions = {
+        keysColor: 'green',
+        dashColor: 'magenta',
+        numberColor: 'cyan',
+        stringColor: 'yellow'
+    };
+    availableCenters.forEach((center) => {
+        console.log(prettyjson.render(center, prettyOptions));
+        console.log('\x1b[34m', '💉   💉   💉   💉   💉   💉   💉   💉   💉   💉   💉', '\x1b[0m');
+    });
 }
 
 subscribe();
