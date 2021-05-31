@@ -10,9 +10,13 @@ function getAvailableVaccineData(data) {
     const centers = data.centers || [];
     let centersBasedOnFeeType = centers; 
     if (filters.fee_type) {
-         centersBasedOnFeeType = centers.filter(center => {
+        centersBasedOnFeeType = centers.filter(center => {
             return (center.fee_type === filters.fee_type);
         });
+    }
+
+    if(filters.center_id) {
+        centersBasedOnFeeType = filterByCenterId(centersBasedOnFeeType);
     }
 
     let availableCenters = filterByAvailableCapacityAndAgeLimit(centersBasedOnFeeType);
@@ -30,9 +34,15 @@ function filterByAvailableCapacityAndAgeLimit(centers) {
         if (center.sessions && center.sessions.length > 0) {
             return center.sessions.some(session => {
                 if (filters.min_age_limit) {
-                    return session.min_age_limit === filters.min_age_limit && session.available_capacity > 0;
+                    if(filters.dose == 1) {
+                        return session.min_age_limit === filters.min_age_limit && session.available_capacity_dose1 > 0;
+                    }
+                    if(filters.dose == 2) {
+                        return session.min_age_limit === filters.min_age_limit && session.available_capacity_dose2 > 0;
+                    }
+                    return session.min_age_limit === filters.min_age_limit && session.available_capacity_dose1 > 0 || session.available_capacity_dose2 > 0;
                 }
-                return session.available_capacity > 0;
+                return session.available_capacity_dose1 > 0 || session.available_capacity_dose2 > 0;
             });
         }
         return false;
@@ -50,12 +60,24 @@ function filterByVaccineType(centers) {
     });
 }
 
+function filterByCenterId(centers) {
+    return centers.filter(center => {
+        return (center.center_id === filters.center_id);
+    });
+}
+
 
 function removeUnwantedSessions(centers) {
     return centers.map(center => {
         let centerClone = JSON.parse(JSON.stringify(center));
         centerClone.sessions = center.sessions.filter(session => {
-            return session.available_capacity > 0;
+            if(filters.dose == 1) {
+                return session.available_capacity_dose1 > 0;
+            }
+            if(filters.dose == 2) {
+                return session.available_capacity_dose2 > 0;
+            }
+            return session.available_capacity_dose1 > 0 || session.available_capacity_dose2 > 0;
         });
         return centerClone;
     });
@@ -95,7 +117,8 @@ async function getAllData(urls) {
         let options = {
             method: 'GET',
             headers: {
-                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36',
+                'Cache-Control': 'no-store'
             }
         }
         const responses = await Promise.all(
@@ -164,7 +187,9 @@ async function prettyPrint(availableCenters) {
         stringColor: 'yellow'
     };
     availableCenters.forEach((center) => {
-        console.log(prettyjson.render(center, prettyOptions));
+        console.log('   ╭────────────────────────────────────────────────────────────────────────────────────────────────────────────╮');
+        console.log(`     ${prettyjson.render(center, prettyOptions)}`);
+        console.log('   ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯')
         console.log('\x1b[34m', '💉   💉   💉   💉   💉   💉   💉   💉   💉   💉   💉', '\x1b[0m');
     });
 }

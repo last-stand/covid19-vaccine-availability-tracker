@@ -11,6 +11,12 @@ This app is based on Co-WIN data. It is completely console based app which track
      ```sh
      $ sudo apt-get install sox
      ```
+    You might also have to install mp3 handler for sox for sound alert
+    
+    ```sh
+    $ sudo apt-get install libsox-fmt-mp3
+    ```
+    
     For documentation refer this link http://sox.sourceforge.net/sox.html
 
 ## Input Filters
